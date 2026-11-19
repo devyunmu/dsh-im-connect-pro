@@ -50,6 +50,8 @@ export interface PluginConfig {
   groupDenylist?: string
   /** 是否放行 bot 发送者；默认 false，防止群内多 bot 互 @ 烧 token。 */
   allowBotSender?: boolean
+  /** 飞书/Lark 是否查询发送者展示名（contact API + TTL 缓存）；默认 true。 */
+  senderNameLookup?: boolean
 }
 
 export const Config: Schema<PluginConfig> = Schema.object({
@@ -74,6 +76,7 @@ export const Config: Schema<PluginConfig> = Schema.object({
   groupAllowlist: Schema.string().default('').description('allowlist 档位允许响应的群 chat_id，逗号/空白/分号分隔。'),
   groupDenylist: Schema.string().default('').description('群 deny 名单，优先于 allowlist；命中的群无条件静默。'),
   allowBotSender: Schema.boolean().default(false).description('放行 bot 发送者（默认 false，防止群内 bot 互 @ 死循环与 token 消耗）。'),
+  senderNameLookup: Schema.boolean().default(true).description('飞书/Lark 查询发送者展示名（contact API + 10 分钟 LRU 缓存）；失败降级为只传 open_id。'),
 })
 
 export function apply(ctx: Context, config: PluginConfig): void {
@@ -111,6 +114,7 @@ export function apply(ctx: Context, config: PluginConfig): void {
     groupAllowlist: config.groupAllowlist ?? '',
     groupDenylist: config.groupDenylist ?? '',
     allowBotSender: config.allowBotSender === true ? 'true' : 'false',
+    senderNameLookup: config.senderNameLookup === false ? 'false' : 'true',
   }
   const manager = new ChannelManager({ ctx, stateDir, log, engineConfig, accessDefaults })
   log(`[boot] ChannelManager 构造 ${Date.now() - applyStarted}ms`)

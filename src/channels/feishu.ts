@@ -11,6 +11,7 @@ import { fileMedia, MAX_CHANNEL_IMAGES } from './channel-image-download.js'
 import { markdownTableOffsets } from '../engine/split.js'
 import { prependFeishuQuote, type FeishuQuoteClient } from './feishu-quote.js'
 import { evaluateAccess } from './feishu-access.js'
+import { resolveOperatorName, type FeishuContactClient } from './feishu-operator.js'
 
 /** 飞书一张卡片最多 5 个 table 元素，超了整个写入会被拒（230099 / ErrCode 11310），旧卡片内容会卡住。 */
 export const FEISHU_CARD_MAX_TABLES = 5
@@ -392,6 +393,8 @@ interface FeishuConfig {
   groupAllowlist?: string[]
   groupDenylist?: string[]
   allowBotSender?: boolean
+  /** 是否查询发送者展示名；缺省 true。 */
+  senderNameLookup?: boolean
 }
 
 interface FeishuMention {
@@ -452,6 +455,7 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
   let handler: ((msg: ImMessage) => void | Promise<void>) | undefined
   let client: ResourceClient & {
     request(opts: { url: string; method?: string; data?: unknown; params?: unknown }): Promise<unknown>
+    contact?: FeishuContactClient['contact']
     im: { messageReaction: { create(opts: unknown): Promise<{ code?: number; data?: { reaction_id?: string } }>; delete(opts: unknown): Promise<{ code?: number }> }; message: { create(opts: unknown): Promise<unknown>; reply?(opts: unknown): Promise<unknown>; patch(opts: unknown): Promise<unknown>; get: FeishuQuoteClient['im']['message']['get'] }; file: { create(opts: unknown): Promise<{ file_key?: string } | null> }; image: { create(opts: unknown): Promise<{ image_key?: string } | null> } }
   } | undefined
   let ws: { close(opts?: { force?: boolean }): void } | undefined
@@ -792,9 +796,14 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
             }
             resolved = await prependFeishuQuote(client!, message, resolved, timeoutSignal(10_000, generation.signal), log, id)
             if (!current()) return
+            // 展示名查询失败/超时只降级为 open_id，不影响主消息；命中缓存时零 API 调用。
+            const operatorName = config.senderNameLookup === false
+              ? undefined
+              : await resolveOperatorName(client!, data.sender?.sender_id?.open_id, timeoutSignal(3_000, generation.signal))
             await handler?.({
               chatId,
               userId: data.sender?.sender_id?.open_id,
+              ...(operatorName ? { username: operatorName } : {}),
               text: resolved.text,
               ...(resolved.media.length ? { media: resolved.media } : {}),
               messageId: message.message_id,

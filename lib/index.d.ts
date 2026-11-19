@@ -33,6 +33,8 @@ export interface PluginConfig {
     groupDenylist?: string;
     /** 是否放行 bot 发送者；默认 false，防止群内多 bot 互 @ 烧 token。 */
     allowBotSender?: boolean;
+    /** 飞书/Lark 是否查询发送者展示名（contact API + TTL 缓存）；默认 true。 */
+    senderNameLookup?: boolean;
 }
 export declare const Config: Schema<PluginConfig>;
 export declare function apply(ctx: Context, config: PluginConfig): void;

@@ -70,6 +70,8 @@ interface FeishuConfig {
     groupAllowlist?: string[];
     groupDenylist?: string[];
     allowBotSender?: boolean;
+    /** 是否查询发送者展示名；缺省 true。 */
+    senderNameLookup?: boolean;
 }
 interface FeishuMention {
     key?: string;
