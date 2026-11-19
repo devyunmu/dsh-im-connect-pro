@@ -9,6 +9,7 @@ import { KeyedSerialQueue } from '../engine/keyed-queue.js'
 import { timeoutSignal } from '../engine/abort.js'
 import { fileMedia, MAX_CHANNEL_IMAGES } from './channel-image-download.js'
 import { markdownTableOffsets } from '../engine/split.js'
+import { prependFeishuQuote, type FeishuQuoteClient } from './feishu-quote.js'
 
 /** 飞书一张卡片最多 5 个 table 元素，超了整个写入会被拒（230099 / ErrCode 11310），旧卡片内容会卡住。 */
 export const FEISHU_CARD_MAX_TABLES = 5
@@ -446,7 +447,7 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
   let handler: ((msg: ImMessage) => void | Promise<void>) | undefined
   let client: ResourceClient & {
     request(opts: { url: string; method?: string; data?: unknown; params?: unknown }): Promise<unknown>
-    im: { messageReaction: { create(opts: unknown): Promise<{ code?: number; data?: { reaction_id?: string } }>; delete(opts: unknown): Promise<{ code?: number }> }; message: { create(opts: unknown): Promise<unknown>; reply?(opts: unknown): Promise<unknown>; patch(opts: unknown): Promise<unknown> }; file: { create(opts: unknown): Promise<{ file_key?: string } | null> }; image: { create(opts: unknown): Promise<{ image_key?: string } | null> } }
+    im: { messageReaction: { create(opts: unknown): Promise<{ code?: number; data?: { reaction_id?: string } }>; delete(opts: unknown): Promise<{ code?: number }> }; message: { create(opts: unknown): Promise<unknown>; reply?(opts: unknown): Promise<unknown>; patch(opts: unknown): Promise<unknown>; get: FeishuQuoteClient['im']['message']['get'] }; file: { create(opts: unknown): Promise<{ file_key?: string } | null> }; image: { create(opts: unknown): Promise<{ image_key?: string } | null> } }
   } | undefined
   let ws: { close(opts?: { force?: boolean }): void } | undefined
   let statusText = '未连接'
@@ -738,7 +739,7 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
         },
         'im.message.receive_v1': async (data: {
           sender?: { sender_id?: { open_id?: string } }
-          message?: { message_id?: string; root_id?: string; parent_id?: string; thread_id?: string; chat_id?: string; chat_type?: string; message_type?: string; content?: string; mentions?: FeishuMention[] }
+          message?: { message_id?: string; root_id?: string; parent_id?: string; upper_message_id?: string; thread_id?: string; chat_id?: string; chat_type?: string; message_type?: string; content?: string; mentions?: FeishuMention[] }
         }) => {
           const message = data.message
           if (!message) return
@@ -776,6 +777,7 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
               }).catch(() => log(`[${id}] 媒体提示发送失败`))
               return
             }
+            resolved = await prependFeishuQuote(client!, message, resolved, timeoutSignal(10_000, generation.signal), log, id)
             if (!current()) return
             await handler?.({
               chatId,
