@@ -632,6 +632,8 @@ export class ChannelManager {
         register(route: {
           kind: string
           path: string
+          /** 宿主在 handler 之前执行的认证策略；管理 API 必须显式要求登录。 */
+          auth?: 'required' | 'anonymous' | 'deny'
           handler: (req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => void
         }): (() => void) | void
       }
@@ -664,7 +666,7 @@ export class ChannelManager {
         }
       }
       try {
-        // 路由段统一从插件前缀之后开始，身份认证只由下方入口负责。
+        // 路由段统一从插件前缀之后开始，身份认证由宿主 webserver 的路由策略前置负责。
         const parts = ('/dsh-im-connect/api' + path).split('/').filter(Boolean)
         if (parts[2] === 'sidebar-entry' && parts.length === 3) {
           if (method === 'GET' || method === 'HEAD') {
@@ -896,24 +898,15 @@ export class ChannelManager {
     }
 
     const basePath = '/api/yunmu/dsh-im-connect-pro'
+    // 认证由宿主 webserver 在进入 handler 前完成：rc.2 起 `requestRejection`
+    // 已移除，显式 `auth: 'required'` 把「管理 API 必须登录」写进路由契约，
+    // 无凭据请求在打开 body 之前就得到 401/403。
     const dispose = webServer.register({
       kind: 'prefix',
       path: basePath,
+      auth: 'required',
       handler: async (req, res) => {
         try {
-          // 动态读取活动服务，并保留 requestRejection 的 this 绑定。
-          const connection = (typeof ctx.get === 'function' ? ctx.get('connection') : undefined) as {
-            requestRejection?: (request: { headers: typeof req.headers }) => 401 | 403 | undefined
-          } | undefined
-          if (typeof connection?.requestRejection !== 'function') {
-            send(res, 503, { ok: false, error: '宿主认证服务尚未就绪或版本不支持；请稍后重试或升级宿主。 / Retry or upgrade DSH to enable authenticated management.' })
-            return
-          }
-          const rejection = connection.requestRejection(req)
-          if (rejection !== undefined) {
-            send(res, rejection, { ok: false, error: rejection === 401 ? '请先登录 DSH / Sign in to DSH first' : '宿主拒绝此 Host 或跨站请求 / Host or cross-site request forbidden' })
-            return
-          }
           const requestError = validateApiMutation(req)
           if (requestError) { send(res, requestError.status, { ok: false, error: requestError.error }); return }
           const url = new URL(req.url ?? '/', 'http://localhost')
@@ -923,7 +916,7 @@ export class ChannelManager {
           }
           await dispatch(req.method ?? 'GET', url.pathname.slice(basePath.length), () => readJson(req), (status, body) => send(res, status, body))
         } catch (error) {
-          this.log(`[manager] API 认证失败: ${error instanceof Error ? error.message : String(error)}`)
+          this.log(`[manager] API 处理失败: ${error instanceof Error ? error.message : String(error)}`)
           send(res, 500, { ok: false, error: '操作失败，请查看本机日志' })
         }
       },
