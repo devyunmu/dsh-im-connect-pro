@@ -49,4 +49,18 @@ export declare function resolveFeishuAccessConfig(raw: {
  * @returns allow 或具体的 ignore 原因。
  */
 export declare function evaluateAccess(input: FeishuAccessInput): FeishuAccessDecision;
+/** 拒绝后的用户可见反馈类型；none 表示保持静默。 */
+export type FeishuAccessNotice = 'none' | 'group-disabled';
+/**
+ * 按 M3 判定结果给分级反馈：
+ * - ignore-loop / ignore-bot：永远静默（回复即回环）；
+ * - 私聊：不新增提示，保留既有 engine 引导文案；
+ * - denylist 群：静默（有意屏蔽，不打扰）；
+ * - groupPolicy=off 或 allowlist 名单外且被 @：提示「本群未启用该服务」；
+ * - 仅未 @ 的群消息：静默（避免刷屏）。
+ * @param input - 与 evaluateAccess 相同的输入。
+ * @param decision - evaluateAccess 的返回值。
+ * @returns 需要发送的提示类型。
+ */
+export declare function accessNotice(input: FeishuAccessInput, decision: FeishuAccessDecision): FeishuAccessNotice;
 //# sourceMappingURL=feishu-access.d.ts.map

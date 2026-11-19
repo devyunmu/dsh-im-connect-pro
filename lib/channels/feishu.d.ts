@@ -88,6 +88,8 @@ interface FeishuConfig {
     senderNameLookup?: boolean;
     /** 是否把 merge_forward 压成可读摘要；缺省 true。 */
     richSummary?: boolean;
+    /** 群未启用/名单外被 @ 时是否回一条提示；缺省 true。 */
+    groupDeniedNotice?: boolean;
 }
 interface FeishuMention {
     key?: string;

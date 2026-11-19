@@ -37,6 +37,8 @@ export interface PluginConfig {
     senderNameLookup?: boolean;
     /** 飞书/Lark 是否把合并转发压成可读摘要；默认 true。 */
     richSummary?: boolean;
+    /** 群未启用/名单外被 @ 时是否回一条「本群未启用该服务」；默认 true。 */
+    groupDeniedNotice?: boolean;
 }
 export declare const Config: Schema<PluginConfig>;
 export declare function apply(ctx: Context, config: PluginConfig): void;

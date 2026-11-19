@@ -54,6 +54,8 @@ export interface PluginConfig {
   senderNameLookup?: boolean
   /** 飞书/Lark 是否把合并转发压成可读摘要；默认 true。 */
   richSummary?: boolean
+  /** 群未启用/名单外被 @ 时是否回一条「本群未启用该服务」；默认 true。 */
+  groupDeniedNotice?: boolean
 }
 
 export const Config: Schema<PluginConfig> = Schema.object({
@@ -80,6 +82,7 @@ export const Config: Schema<PluginConfig> = Schema.object({
   allowBotSender: Schema.boolean().default(false).description('放行 bot 发送者（默认 false，防止群内 bot 互 @ 死循环与 token 消耗）。'),
   senderNameLookup: Schema.boolean().default(true).description('飞书/Lark 查询发送者展示名（contact API + 10 分钟 LRU 缓存）；失败降级为只传 open_id。'),
   richSummary: Schema.boolean().default(true).description('飞书/Lark 把 merge_forward 压成“发送者: 文本”摘要，总长 ≤2000 字符；解析失败保持原错误。'),
+  groupDeniedNotice: Schema.boolean().default(true).description('群档位 off / 名单外群被 @ 时回一条「本群未启用该服务」；回环与未 @ 永远静默。'),
 })
 
 export function apply(ctx: Context, config: PluginConfig): void {
@@ -119,6 +122,7 @@ export function apply(ctx: Context, config: PluginConfig): void {
     allowBotSender: config.allowBotSender === true ? 'true' : 'false',
     senderNameLookup: config.senderNameLookup === false ? 'false' : 'true',
     richSummary: config.richSummary === false ? 'false' : 'true',
+    groupDeniedNotice: config.groupDeniedNotice === false ? 'false' : 'true',
   }
   const manager = new ChannelManager({ ctx, stateDir, log, engineConfig, accessDefaults })
   log(`[boot] ChannelManager 构造 ${Date.now() - applyStarted}ms`)

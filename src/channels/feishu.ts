@@ -10,7 +10,7 @@ import { timeoutSignal } from '../engine/abort.js'
 import { fileMedia, MAX_CHANNEL_IMAGES } from './channel-image-download.js'
 import { markdownTableOffsets } from '../engine/split.js'
 import { prependFeishuQuote, type FeishuQuoteClient } from './feishu-quote.js'
-import { evaluateAccess } from './feishu-access.js'
+import { accessNotice, evaluateAccess } from './feishu-access.js'
 import { resolveOperatorName, type FeishuContactClient } from './feishu-operator.js'
 import { summarizeMergeForward } from './feishu-rich.js'
 
@@ -430,6 +430,8 @@ interface FeishuConfig {
   senderNameLookup?: boolean
   /** 是否把 merge_forward 压成可读摘要；缺省 true。 */
   richSummary?: boolean
+  /** 群未启用/名单外被 @ 时是否回一条提示；缺省 true。 */
+  groupDeniedNotice?: boolean
 }
 
 interface FeishuMention {
@@ -500,6 +502,9 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
 
   const openThinking = new Map<string, FeishuThinkingState>()
   const activeThinking = new Set<FeishuThinkingState>()
+  /** 同一群 10 分钟内最多提示一次，避免刷屏/互相回环。 */
+  const groupNoticeSentAt = new Map<string, number>()
+  const GROUP_DISABLED_NOTICE_COOLDOWN_MS = 10 * 60 * 1000
 
   /** 思考过程投递：非话题（私聊/群大厅）走飞书原生 message_cot；话题回复串（thread）或权限不足时平滑降级为折叠卡片 */
   async function publishThinking(chatId: string, text: string, options?: ThinkingOptions): Promise<void> {
@@ -788,16 +793,32 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
           const message = data.message
           if (!message || !message.chat_id || !current()) return
           const group = message.chat_type === 'group'
-          // 群聊门禁按 F2 回环 → F3 档位/名单裁决；ignore-* 在进队列前静默丢弃，零回复、零模型调用。
-          const decision = evaluateAccess({
+          // 群聊门禁按 F2 回环 → F3 档位/名单裁决；ignore-* 在进队列前丢弃，零模型调用。
+          const accessInput = {
             senderIdType: data.sender?.sender_type,
             senderOpenId: data.sender?.sender_id?.open_id,
             chatId: message.chat_id,
             isGroup: group,
             isBotMentioned: isFeishuBotMentioned(message.mentions, botOpenId),
             config,
-          })
-          if (decision !== 'allow') return
+          }
+          const decision = evaluateAccess(accessInput)
+          if (decision !== 'allow') {
+            // 分级话术：只有 off/名单外且被 @ 的群给一次提示；loop、未 @、denylist 保持静默。
+            if (config.groupDeniedNotice !== false && accessNotice(accessInput, decision) === 'group-disabled') {
+              const now = Date.now()
+              if (now - (groupNoticeSentAt.get(message.chat_id) ?? 0) >= GROUP_DISABLED_NOTICE_COOLDOWN_MS) {
+                groupNoticeSentAt.set(message.chat_id, now)
+                if (client) {
+                  void client.im.message.create({
+                    params: { receive_id_type: 'chat_id' },
+                    data: { receive_id: message.chat_id, msg_type: 'text', content: JSON.stringify({ text: '本群未启用该服务' }) },
+                  }).catch(error => log(`[${id}] 群未启用提示发送失败: ${error instanceof Error ? error.message : String(error)}`))
+                }
+              }
+            }
+            return
+          }
           const rawChatId = message.chat_id
           // 原生话题群/话题串认真实根消息 ID（跟帖取 root_id，首贴取自身 message_id）；
           // 普通群仅在开启配置 threadSessions 时按回复串（root_id）隔离会话，避免日常引用过度分裂；私聊绝不隔离话题
