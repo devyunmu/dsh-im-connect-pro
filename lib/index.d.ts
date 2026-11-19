@@ -5,7 +5,7 @@ import type { Context } from '@deepseek-ai/cordis';
 import Schema from '@deepseek-ai/schemastery';
 import type { EngineConfig } from './engine/types.js';
 import type { TopicMode } from './engine/topic-title.js';
-export declare const name = "dsh-im-connect";
+export declare const name = "dsh-im-connect-pro";
 export declare const inject: string[];
 export interface PluginConfig {
     stateDir: string;

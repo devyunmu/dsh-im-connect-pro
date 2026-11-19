@@ -895,7 +895,7 @@ export class ChannelManager {
       }
     }
 
-    const basePath = '/api/michengai/dsh-im-connect'
+    const basePath = '/api/yunmu/dsh-im-connect-pro'
     const dispose = webServer.register({
       kind: 'prefix',
       path: basePath,
@@ -929,7 +929,7 @@ export class ChannelManager {
       },
     })
     if (typeof dispose === 'function') this.apiDisposers.push(dispose)
-    this.log('[manager] API 已注册 /api/michengai/dsh-im-connect')
+    this.log('[manager] API 已注册 /api/yunmu/dsh-im-connect-pro')
   }
 
   disposeApi(): void {

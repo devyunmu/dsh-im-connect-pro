@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const OWNER = '@michengai/dsh-im-connect'
+const OWNER = '@yunmu/dsh-im-connect-pro'
 
 class StyleElement {
   id = ''

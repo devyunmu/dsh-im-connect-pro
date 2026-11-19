@@ -219,7 +219,7 @@ test('同一个页面已存在活跃实例时，后续实例跳过包装并输�
     // 模拟同一个页面启动了第二个实例（重复加载）
     stop2 = h.start()
     assert.equal(entry.component, wrappedByFirst, '第二实例不重复接管或破坏已有外壳')
-    assert.ok(warnings.some(msg => msg.includes('[dsh-im-connect]') && msg.includes('已有活跃')), '第二实例输出重复实例诊断日志')
+    assert.ok(warnings.some(msg => msg.includes('[dsh-im-connect-pro]') && msg.includes('已有活跃')), '第二实例输出重复实例诊断日志')
   } finally {
     console.warn = origWarn
     if (stop2) stop2()

@@ -1,8 +1,8 @@
 /**
- * dsh-im-connect 浏览器端：IM助理设置页 + 工作区频道槽。
+ * dsh-im-connect-pro 浏览器端：IM助理设置页 + 工作区频道槽。
  */
 window.__ModuleLoader__.load({
-  id: "@michengai/dsh-im-connect",
+  id: "@yunmu/dsh-im-connect-pro",
   factory: (require) => {
     var module = { exports: {} };
     var exports = module.exports;
@@ -421,8 +421,8 @@ window.__ModuleLoader__.load({
     // 已通过逐条投递验证的渠道，与宿主端 channels/meta.ts 的 supportsSegmentReply 保持一致。
     const SEGMENT_REPLY_PLATFORMS = ["qq"];
     const supportsSegmentReply = (platform) => SEGMENT_REPLY_PLATFORMS.indexOf(platform) >= 0;
-    const CHANNEL_SETTINGS_EVENT = "dsh-im-connect:open-channel-settings";
-    const CHANNEL_SETTINGS_STORAGE_KEY = "dsh-im-connect:pending-channel-settings";
+    const CHANNEL_SETTINGS_EVENT = "dsh-im-connect-pro:open-channel-settings";
+    const CHANNEL_SETTINGS_STORAGE_KEY = "dsh-im-connect-pro:pending-channel-settings";
     const SETTINGS_CODEX_TRIGGER_SELECTOR = "[data-dcu-settings-trigger]";
     const SETTINGS_CODEX_PAGE_SELECTOR = "[data-dcu-settings-page]";
     const SETTINGS_OPEN_SECTION_EVENT = "dcu-settings-open-section";
@@ -507,7 +507,7 @@ window.__ModuleLoader__.load({
       openSettingsSection(
         [t("settings.label"), IM_LOCALES.en["settings.label"], IM_LOCALES.zh["settings.label"]],
         () => {},
-        () => console.warn("[dsh-im-connect] 无法打开 IM 助理设置页"),
+        () => console.warn("[dsh-im-connect-pro] 无法打开 IM 助理设置页"),
       );
     }
     function openSettingsSection(labels, onSelected, onMissing) {
@@ -589,7 +589,7 @@ window.__ModuleLoader__.load({
     }
     const EMPTY_EXTRA_TABS = [];
     const inject = ["slots", "sessions", "workspaces", "locale"];
-    const API_BASE = "/api/michengai/dsh-im-connect";
+    const API_BASE = "/api/yunmu/dsh-im-connect-pro";
     const TAB_KEY = "dsh-native-sidebar.tab";
     const ACCOUNT_SELECTION_KEY = "dsh-im-connect.settings.selected-account";
     const IM_LOCALE_NS = "im-connect";
@@ -3249,11 +3249,11 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
     let styleEl = null;
     const ensureStyle = () => {
       if (styleEl && styleEl.isConnected) {
-        styleEl.setAttribute("data-plugin", "@michengai/dsh-im-connect");
+        styleEl.setAttribute("data-plugin", "@yunmu/dsh-im-connect-pro");
         return;
       }
       styleEl = document.createElement("style");
-      styleEl.setAttribute("data-plugin", "@michengai/dsh-im-connect");
+      styleEl.setAttribute("data-plugin", "@yunmu/dsh-im-connect-pro");
       styleEl.textContent = CSS + TITLE_LINK_CSS;
       document.head.appendChild(styleEl);
     };
@@ -3742,13 +3742,13 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ sessionId: id }),
         }).then((data) => {
-          if (!data.ok) { console.warn("[dsh-im-connect] 无法恢复会话", data.error || id); return; }
+          if (!data.ok) { console.warn("[dsh-im-connect-pro] 无法恢复会话", data.error || id); return; }
           const tryOpen = (left) => {
             if (openImSession(id) || left <= 0) return;
             setTimeout(() => tryOpen(left - 1), 80);
           };
           tryOpen(20);
-        }).catch((error) => console.warn("[dsh-im-connect] 无法恢复会话", id, error));
+        }).catch((error) => console.warn("[dsh-im-connect-pro] 无法恢复会话", id, error));
         return;
       }
       tryOpenListedSession(id, hostOpen);
@@ -5683,7 +5683,7 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
         return { failed: true };
       }
       componentDidCatch(error) {
-        console.warn("[dsh-im-connect] 官方频道树渲染失败", error);
+        console.warn("[dsh-im-connect-pro] 官方频道树渲染失败", error);
       }
       render() {
         return this.state.failed ? h(ChannelUnavailable, { t: this.props.t }) : this.props.children;
@@ -6200,7 +6200,7 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
         return { failed: true };
       }
       componentDidCatch(error) {
-        console.warn("[dsh-im-connect] 侧栏包装渲染失败，已回落到宿主原生会话列表", error);
+        console.warn("[dsh-im-connect-pro] 侧栏包装渲染失败，已回落到宿主原生会话列表", error);
       }
       render() {
         if (this.state.failed) {
@@ -6252,7 +6252,7 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
       return null;
     }
 
-    const BUNDLE_KEY = "@michengai/dsh-im-connect";
+    const BUNDLE_KEY = "@yunmu/dsh-im-connect-pro";
     const SIDEBAR_PANEL_ID = "im-connect";
     const SIDEBAR_PANEL_ORDER = 3;
 
@@ -6673,7 +6673,7 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
         };
       }, "im-connect: host session refresh");
       ctx.effect(() => channelRefresh.subscribe((data, error) => {
-        if (error) console.warn("[dsh-im-connect] 无法刷新渠道会话归属", error);
+        if (error) console.warn("[dsh-im-connect-pro] 无法刷新渠道会话归属", error);
       }), "im-connect: channel membership");
       ctx.effect(() => ctx.locale.register(IM_LOCALE_NS, IM_LOCALES), "im-connect: dictionaries");
       const t = ctx.locale.bind(IM_LOCALE_NS);
@@ -6737,7 +6737,7 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
           if (window.__dshSessionsOpen) { window.__dshSessionsOpen(id); return true; }
         } catch { /* ignore */ }
         try { return openHostSession(ctx, id); }
-        catch (error) { console.warn("[dsh-im-connect] 无法打开会话", id, error); return false; }
+        catch (error) { console.warn("[dsh-im-connect-pro] 无法打开会话", id, error); return false; }
       };
 
       const NAV_ICON_MARKER = "data-ima-nav-icon";
@@ -7107,7 +7107,7 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
               filterInstalled = true;
             } else if (!warnedUnsupportedFilter) {
               warnedUnsupportedFilter = true;
-              console.warn("[dsh-im-connect] 外壳注册表未支持 addSessionFilter 协议，无法在任务树过滤会话");
+              console.warn("[dsh-im-connect-pro] 外壳注册表未支持 addSessionFilter 协议，无法在任务树过滤会话");
             }
           }
         };
@@ -7206,7 +7206,7 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
           if (isDuplicateOwner()) {
             if (!warnedDuplicate) {
               warnedDuplicate = true;
-              console.warn("[dsh-im-connect] 检测到同模块已有活跃的侧栏实例，跳过重复包装与页签注入");
+              console.warn("[dsh-im-connect-pro] 检测到同模块已有活跃的侧栏实例，跳过重复包装与页签注入");
             }
             return;
           }
@@ -7250,7 +7250,7 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
             };
             const resolvedComp = resolveRealOfficialTree(official.component);
             if (!resolvedComp) {
-              console.warn("[dsh-im-connect] 目标条目已被包裹且无法解析原始底层组件，放弃包裹以防嵌套");
+              console.warn("[dsh-im-connect-pro] 目标条目已被包裹且无法解析原始底层组件，放弃包裹以防嵌套");
               return;
             }
             originalComp = resolvedComp;
@@ -7278,7 +7278,7 @@ body:not([data-ds-dark-theme]) .ima-section-card{background:var(--dsw-alias-bg-l
             wrappedEntry = official;
             notifyPeers();
           } catch (error) {
-            console.warn("[dsh-im-connect] 包裹官方任务树失败", error);
+            console.warn("[dsh-im-connect-pro] 包裹官方任务树失败", error);
           } finally {
             syncing = false;
           }

@@ -103,8 +103,8 @@ test('侧边栏入口配置：管理器方法、持久化与 HTTP API', async ()
     const server = createServer((req, res) => route.handler(req, res))
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
     const port = server.address().port
-    const baseUrl = `http://127.0.0.1:${port}/api/michengai/dsh-im-connect/sidebar-entry`
-    const taskTreeUrl = `http://127.0.0.1:${port}/api/michengai/dsh-im-connect/task-tree-sessions`
+    const baseUrl = `http://127.0.0.1:${port}/api/yunmu/dsh-im-connect-pro/sidebar-entry`
+    const taskTreeUrl = `http://127.0.0.1:${port}/api/yunmu/dsh-im-connect-pro/task-tree-sessions`
     const headers = { 'content-type': 'application/json', 'x-dsh-im-connect-client': '1' }
 
     try {
@@ -337,7 +337,7 @@ test('客户端侧边栏入口与 bundle.config 开关槽位生命周期', async
   // 执行 bundle config 注入
   slotInjections.get('plugins.bundle.config')()
   assert.ok(slotRegistrations.has('plugins.bundle.config'))
-  assert.equal(slotRegistrations.get('plugins.bundle.config').meta.key, '@michengai/dsh-im-connect')
+  assert.equal(slotRegistrations.get('plugins.bundle.config').meta.key, '@yunmu/dsh-im-connect-pro')
 
   // 触发 sidebar.panellist 槽位注入（代表宿主支持侧边栏）
   assert.ok(slotInjections.has('sidebar.panellist'))

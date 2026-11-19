@@ -12,7 +12,7 @@ import type { TopicMode } from './engine/topic-title.js'
 import { createRotatingFileAppender } from './engine/file-log.js'
 import { withReplyLocale } from './engine/command-locale.js'
 
-export const name = 'dsh-im-connect'
+export const name = 'dsh-im-connect-pro'
 export const inject = [
   'webServer',
   'credentials',

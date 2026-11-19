@@ -53,7 +53,7 @@ jobs:
         id: check
         run: |
           version=$(node -p "require('./package.json').version")
-          if npm view "@michengai/dsh-im-connect@$version" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
+          if npm view "@yunmu/dsh-im-connect-pro@$version" version --registry=https://registry.npmjs.org >/dev/null 2>&1; then
             echo 'skip=true' >> "$GITHUB_OUTPUT"
             echo "Version $version already published; skipping publish."
           else
