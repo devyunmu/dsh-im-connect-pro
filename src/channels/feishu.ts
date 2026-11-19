@@ -432,6 +432,8 @@ interface FeishuConfig {
   richSummary?: boolean
   /** 群未启用/名单外被 @ 时是否回一条提示；缺省 true。 */
   groupDeniedNotice?: boolean
+  /** 出站样式：card=Schema 2.0 卡片（默认，表格/代码可渲染）；post=与 Hermes 一致的灰底富文本容器。 */
+  outboundStyle?: 'card' | 'post'
 }
 
 interface FeishuMention {
@@ -894,6 +896,32 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
     async send(chatId, text) {
       if (!client) throw new Error(`${id}: 尚未连接`)
       const sender = client
+      if (config.outboundStyle === 'post') {
+        // post 模式：与 Hermes 富文本容器观感一致（灰底）；post 不渲染表格/代码，超长按 3800 分条。
+        for (const chunk of chunkByGraphemes(text, 3800)) {
+          const payload = { post: { zh_cn: { content: [[{ tag: 'text', text: chunk }]] } } }
+          const sent = await postFeishuMessage(
+            sender,
+            chatId,
+            'post',
+            JSON.stringify(payload),
+            line => log(`[${id}] ${line}`),
+          ).catch((error: unknown) => {
+            log(`[${id}] post 发送被拒，回退纯文本 ${httpFailureSummary(error)}`)
+            const fb = postFeishuMessage(
+              sender,
+              chatId,
+              'text',
+              JSON.stringify({ text: chunk }),
+              line => log(`[${id}] ${line}`),
+            )
+            return fb as { code?: number | string } | undefined
+          }) as { code?: number | string } | undefined
+          if (isRejectedCode(sent?.code)) throw new Error(`${id}: post-send-rejected code=${String(sent?.code)}`)
+          if (isThrottleCode(sent?.code)) throw new DeliveryRejected(`${id}: post-send-throttled code=${String(sent?.code)}`)
+        }
+        return
+      }
       // 普通回复也走卡片 markdown，标题、列表和表格才会被渲染；按表格数量拆卡。
       let delivered = false
       for (const part of splitByTableLimit(text)) {

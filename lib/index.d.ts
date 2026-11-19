@@ -39,6 +39,8 @@ export interface PluginConfig {
     richSummary?: boolean;
     /** 群未启用/名单外被 @ 时是否回一条「本群未启用该服务」；默认 true。 */
     groupDeniedNotice?: boolean;
+    /** 出站样式：card（默认）| post（Hermes 观感）。 */
+    outboundStyle?: 'card' | 'post';
 }
 export declare const Config: Schema<PluginConfig>;
 export declare function apply(ctx: Context, config: PluginConfig): void;

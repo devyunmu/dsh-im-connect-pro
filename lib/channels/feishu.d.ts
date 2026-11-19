@@ -90,6 +90,8 @@ interface FeishuConfig {
     richSummary?: boolean;
     /** 群未启用/名单外被 @ 时是否回一条提示；缺省 true。 */
     groupDeniedNotice?: boolean;
+    /** 出站样式：card=Schema 2.0 卡片（默认，表格/代码可渲染）；post=与 Hermes 一致的灰底富文本容器。 */
+    outboundStyle?: 'card' | 'post';
 }
 interface FeishuMention {
     key?: string;
