@@ -434,11 +434,58 @@ interface FeishuConfig {
   groupDeniedNotice?: boolean
   /** 出站样式：card=Schema 2.0 卡片（默认，表格/代码可渲染）；post=与 Hermes 一致的灰底富文本容器。 */
   outboundStyle?: 'card' | 'post'
+  /** 出站 @ 注入映射：名称 → open_id；文本中的 "@名称" 渲染成真实 mention 实例。 */
+  mentionAliases?: Record<string, string>
 }
 
 interface FeishuMention {
   key?: string
   id?: { open_id?: string }
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function aliasRegExp(aliases: Record<string, string> | undefined): RegExp | undefined {
+  const names = Object.keys(aliases ?? {}).filter(Boolean).sort((a, b) => b.length - a.length)
+  if (!names.length) return undefined
+  return new RegExp(`@(${names.map(escapeRegExp).join('|')})`, 'g')
+}
+
+/** 出站 @ 注入（text/card 样式）：文本中的 "@名称" 替换为真实 mention 表达式；未命中保持原文。 */
+export function injectMentionMarkup(
+  text: string,
+  aliases: Record<string, string> | undefined,
+  style: 'text' | 'markdown',
+): string {
+  const re = aliasRegExp(aliases)
+  if (!re || !text) return text
+  return text.replace(re, (match, name: string) => {
+    const uid = aliases![name]
+    if (!uid) return match
+    return style === 'text' ? `<at user_id="${uid}"></at>` : `<at id="${uid}"></at>`
+  })
+}
+
+/** 出站 @ 注入（post 样式）：把文本切成 {tag:'text'} 与 {tag:'at',user_id} 段，供 post 富文本容器使用。 */
+export function buildPostContentSegments(
+  text: string,
+  aliases: Record<string, string> | undefined,
+): Array<Record<string, string>> {
+  const re = aliasRegExp(aliases)
+  if (!re || !text) return [{ tag: 'text', text }]
+  const segments: Array<Record<string, string>> = []
+  let last = 0
+  for (const match of text.matchAll(re)) {
+    const idx = match.index ?? 0
+    if (idx > last) segments.push({ tag: 'text', text: text.slice(last, idx) })
+    const name = match[1] ?? ''
+    segments.push({ tag: 'at', user_id: aliases![name] ?? name })
+    last = idx + match[0].length
+  }
+  if (last < text.length) segments.push({ tag: 'text', text: text.slice(last) })
+  return segments.length ? segments : [{ tag: 'text', text }]
 }
 
 /**
@@ -899,7 +946,7 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
       if (config.outboundStyle === 'post') {
         // post 模式：与 Hermes 富文本容器观感一致（灰底）；post 不渲染表格/代码，超长按 3800 分条。
         for (const chunk of chunkByGraphemes(text, 3800)) {
-          const payload = { post: { zh_cn: { content: [[{ tag: 'text', text: chunk }]] } } }
+          const payload = { post: { zh_cn: { content: [buildPostContentSegments(chunk, config.mentionAliases)] } } }
           const sent = await postFeishuMessage(
             sender,
             chatId,
@@ -912,7 +959,7 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
               sender,
               chatId,
               'text',
-              JSON.stringify({ text: chunk }),
+              JSON.stringify({ text: injectMentionMarkup(chunk, config.mentionAliases, 'text') }),
               line => log(`[${id}] ${line}`),
             )
             return fb as { code?: number | string } | undefined
@@ -932,7 +979,7 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
             sender,
             chatId,
             'interactive',
-            JSON.stringify({ schema: '2.0', config: { wide_screen_mode: true }, body: { elements: [{ tag: 'markdown', content: part }] } }),
+            JSON.stringify({ schema: '2.0', config: { wide_screen_mode: true }, body: { elements: [{ tag: 'markdown', content: injectMentionMarkup(part, config.mentionAliases, 'markdown') }] } }),
             line => log(`[${id}] ${line}`),
           ).catch((error: unknown) => {
             const response = (error as { response?: { status?: number } } | undefined)?.response
@@ -950,7 +997,7 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
             sender,
             chatId,
             'text',
-            JSON.stringify({ text: part }),
+            JSON.stringify({ text: injectMentionMarkup(part, config.mentionAliases, 'text') }),
             line => log(`[${id}] ${line}`),
           ).catch((error: unknown) => {
             log(`[${id}] 纯文本回退发送失败 ${httpFailureSummary(error)}`)

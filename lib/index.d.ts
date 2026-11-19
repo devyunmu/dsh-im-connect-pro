@@ -41,6 +41,8 @@ export interface PluginConfig {
     groupDeniedNotice?: boolean;
     /** 出站样式：card（默认）| post（Hermes 观感）。 */
     outboundStyle?: 'card' | 'post';
+    /** 出站 @ 注入映射：名称=open_id，逗号分隔；命中文本 "@名称" 时渲染成真实 mention。 */
+    mentionAliases?: string;
 }
 export declare const Config: Schema<PluginConfig>;
 export declare function apply(ctx: Context, config: PluginConfig): void;

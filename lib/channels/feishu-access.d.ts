@@ -30,6 +30,11 @@ export interface FeishuAccessInput {
 }
 /** 拆分手工群名单：逗号/中文逗号/空白/分号分隔，去重保序。 */
 export declare function parseFeishuChatList(raw: unknown): string[];
+/**
+ * 解析出站 @ 注入映射：条目形如「名称=open_id」，逗号/中文逗号/空白/分号/换行分隔；
+ * 同名条目后者覆盖前者。非法条目（缺 = 或两侧为空）直接跳过，不影响其余条目。
+ */
+export declare function parseMentionAliasList(raw: unknown): Record<string, string>;
 /** 把渠道配置（字符串键值）归一成准入配置；非法档位回退 mention。 */
 export declare function resolveFeishuAccessConfig(raw: {
     groupPolicy?: unknown;

@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.46] - 2026-11-19
+
+### Feishu outbound @ mention injection (bot-to-bot @)
+
+- **Outbound mention alias mapping (mentionAliases)**: new config `name=open_id` pairs, comma-separated. Plain-text `@name` produced by the model is rendered as a real Feishu mention on send — the post style splits out `{tag:'at'}` rich-text segments, the card style inlines `<at id=…>`, and the plain-text/fallback paths inline `<at user_id=…>`; unmatched text passes through untouched. Previously the channel sent only plain-text segments, so a bot could never genuinely @ another member in a group and cross-bot handoff relied on human relay.
+- **Factory passthrough fix**: `outboundStyle` selected in account settings was never forwarded to Feishu/Lark channels (M4+ regression) — accounts configured as post silently rendered as card; now honored, and `mentionAliases` is passed through the same way.
+- **Config surface**: plugin-level `mentionAliases` string config (default empty = off), layered under per-account config (account wins).
+
 ## [1.0.45] - 2026-11-18
 
 ### Sidebar Tab Strip & Layout Stability

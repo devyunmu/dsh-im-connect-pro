@@ -58,6 +58,8 @@ export interface PluginConfig {
   groupDeniedNotice?: boolean
   /** 出站样式：card（默认）| post（Hermes 观感）。 */
   outboundStyle?: 'card' | 'post'
+  /** 出站 @ 注入映射：名称=open_id，逗号分隔；命中文本 "@名称" 时渲染成真实 mention。 */
+  mentionAliases?: string
 }
 
 export const Config: Schema<PluginConfig> = Schema.object({
@@ -83,6 +85,7 @@ export const Config: Schema<PluginConfig> = Schema.object({
   groupDenylist: Schema.string().default('').description('群 deny 名单，优先于 allowlist；命中的群无条件静默。'),
     allowBotSender: Schema.boolean().default(false).description('放行 bot 发送者（默认 false，防止群内 bot 互 @ 死循环与 token 消耗）。'),
   outboundStyle: Schema.union(['card', 'post']).default('card').description('飞书/Lark 出站样式：card=Schema 2.0 卡片（默认，表格/代码可渲染）；post=与 Hermes 一致的灰底富文本容器。'),
+  mentionAliases: Schema.string().default('').description('飞书/Lark 出站 @ 注入映射：名称=open_id，逗号分隔。命中文本中的 @名称 时渲染成真实 mention 实例（post/card/text 三种样式均支持）。'),
   senderNameLookup: Schema.boolean().default(true).description('飞书/Lark 查询发送者展示名（contact API + 10 分钟 LRU 缓存）；失败降级为只传 open_id。'),
   richSummary: Schema.boolean().default(true).description('飞书/Lark 把 merge_forward 压成“发送者: 文本”摘要，总长 ≤2000 字符；解析失败保持原错误。'),
   groupDeniedNotice: Schema.boolean().default(true).description('群档位 off / 名单外群被 @ 时回一条「本群未启用该服务」；回环与未 @ 永远静默。'),
@@ -124,6 +127,7 @@ export function apply(ctx: Context, config: PluginConfig): void {
     groupDenylist: config.groupDenylist ?? '',
     allowBotSender: config.allowBotSender === true ? 'true' : 'false',
     outboundStyle: config.outboundStyle === 'post' ? 'post' : 'card',
+    mentionAliases: config.mentionAliases ?? '',
     senderNameLookup: config.senderNameLookup === false ? 'false' : 'true',
     richSummary: config.richSummary === false ? 'false' : 'true',
     groupDeniedNotice: config.groupDeniedNotice === false ? 'false' : 'true',

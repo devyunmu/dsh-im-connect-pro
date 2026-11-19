@@ -92,6 +92,8 @@ interface FeishuConfig {
     groupDeniedNotice?: boolean;
     /** 出站样式：card=Schema 2.0 卡片（默认，表格/代码可渲染）；post=与 Hermes 一致的灰底富文本容器。 */
     outboundStyle?: 'card' | 'post';
+    /** 出站 @ 注入映射：名称 → open_id；文本中的 "@名称" 渲染成真实 mention 实例。 */
+    mentionAliases?: Record<string, string>;
 }
 interface FeishuMention {
     key?: string;
@@ -99,6 +101,10 @@ interface FeishuMention {
         open_id?: string;
     };
 }
+/** 出站 @ 注入（text/card 样式）：文本中的 "@名称" 替换为真实 mention 表达式；未命中保持原文。 */
+export declare function injectMentionMarkup(text: string, aliases: Record<string, string> | undefined, style: 'text' | 'markdown'): string;
+/** 出站 @ 注入（post 样式）：把文本切成 {tag:'text'} 与 {tag:'at',user_id} 段，供 post 富文本容器使用。 */
+export declare function buildPostContentSegments(text: string, aliases: Record<string, string> | undefined): Array<Record<string, string>>;
 /** 群消息只有明确 mention 当前机器人本身才算 addressed；@ 其他成员不触发。 */
 export declare function isFeishuBotMentioned(mentions: FeishuMention[] | undefined, botOpenId: string): boolean;
 export declare function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig, log: (line: string) => void, loadSdk?: () => Promise<typeof import('@larksuiteoapi/node-sdk')>): ChannelAdapter | undefined;
