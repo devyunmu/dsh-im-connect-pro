@@ -45,9 +45,9 @@ export function createChannelAdapter(
         proxyUrl: config.proxyUrl,
       }, log); break
     case 'feishu':
-      adapter = createFeishuChannel('feishu', { appId: config.appId, appSecret: config.appSecret, host: options?.host, threadSessions: config.threadSessions === 'true', senderNameLookup: config.senderNameLookup !== 'false', ...resolveFeishuAccessConfig(config) }, log, options?.loadFeishuSdk); break
+      adapter = createFeishuChannel('feishu', { appId: config.appId, appSecret: config.appSecret, host: options?.host, threadSessions: config.threadSessions === 'true', senderNameLookup: config.senderNameLookup !== 'false', richSummary: config.richSummary !== 'false', ...resolveFeishuAccessConfig(config) }, log, options?.loadFeishuSdk); break
     case 'lark':
-      adapter = createFeishuChannel('lark', { appId: config.appId, appSecret: config.appSecret, domain: 'lark', host: options?.host, threadSessions: config.threadSessions === 'true', senderNameLookup: config.senderNameLookup !== 'false', ...resolveFeishuAccessConfig(config) }, log, options?.loadFeishuSdk); break
+      adapter = createFeishuChannel('lark', { appId: config.appId, appSecret: config.appSecret, domain: 'lark', host: options?.host, threadSessions: config.threadSessions === 'true', senderNameLookup: config.senderNameLookup !== 'false', richSummary: config.richSummary !== 'false', ...resolveFeishuAccessConfig(config) }, log, options?.loadFeishuSdk); break
     case 'weixin':
       adapter = createWeixinChannel({ enabled: true, stateDir, botToken: config.botToken, onBotToken: options?.onWeixinBotToken, host: options?.host }, log, stateDir); break
     case 'wecom':

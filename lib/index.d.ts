@@ -35,6 +35,8 @@ export interface PluginConfig {
     allowBotSender?: boolean;
     /** 飞书/Lark 是否查询发送者展示名（contact API + TTL 缓存）；默认 true。 */
     senderNameLookup?: boolean;
+    /** 飞书/Lark 是否把合并转发压成可读摘要；默认 true。 */
+    richSummary?: boolean;
 }
 export declare const Config: Schema<PluginConfig>;
 export declare function apply(ctx: Context, config: PluginConfig): void;

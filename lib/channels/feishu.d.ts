@@ -51,10 +51,24 @@ interface ResourceClient {
                 headers?: Record<string, string>;
             }>;
         };
+        /** merge_forward 事件只给容器 message_id 时，用它拉取扁平子消息树。 */
+        message?: {
+            get(payload: {
+                path: {
+                    message_id: string;
+                };
+            }): Promise<{
+                data?: {
+                    items?: unknown[];
+                };
+            } | undefined>;
+        };
     };
 }
 /** SDK messageResource.get is the receive-side API, not im.image.get. */
-export declare function resolveFeishuContent(client: ResourceClient, message: FeishuContentMessage, signal?: AbortSignal): Promise<{
+export declare function resolveFeishuContent(client: ResourceClient, message: FeishuContentMessage, signal?: AbortSignal, options?: {
+    richSummary?: boolean;
+}): Promise<{
     text: string;
     media: ImMedia[];
 }>;
@@ -72,6 +86,8 @@ interface FeishuConfig {
     allowBotSender?: boolean;
     /** 是否查询发送者展示名；缺省 true。 */
     senderNameLookup?: boolean;
+    /** 是否把 merge_forward 压成可读摘要；缺省 true。 */
+    richSummary?: boolean;
 }
 interface FeishuMention {
     key?: string;

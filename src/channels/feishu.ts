@@ -12,6 +12,7 @@ import { markdownTableOffsets } from '../engine/split.js'
 import { prependFeishuQuote, type FeishuQuoteClient } from './feishu-quote.js'
 import { evaluateAccess } from './feishu-access.js'
 import { resolveOperatorName, type FeishuContactClient } from './feishu-operator.js'
+import { summarizeMergeForward } from './feishu-rich.js'
 
 /** 飞书一张卡片最多 5 个 table 元素，超了整个写入会被拒（230099 / ErrCode 11310），旧卡片内容会卡住。 */
 export const FEISHU_CARD_MAX_TABLES = 5
@@ -286,7 +287,11 @@ interface FeishuContentMessage {
   content?: string
 }
 interface ResourceClient {
-  im: { messageResource: { get(opts: { path: { message_id: string; file_key: string }; params: { type: string } }): Promise<{ getReadableStream(): import('node:stream').Readable; headers?: Record<string, string> }> } }
+  im: {
+    messageResource: { get(opts: { path: { message_id: string; file_key: string }; params: { type: string } }): Promise<{ getReadableStream(): import('node:stream').Readable; headers?: Record<string, string> }> }
+    /** merge_forward 事件只给容器 message_id 时，用它拉取扁平子消息树。 */
+    message?: { get(payload: { path: { message_id: string } }): Promise<{ data?: { items?: unknown[] } } | undefined> }
+  }
 }
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
 // Shared across all images in one message, not renewed for each resource.
@@ -307,8 +312,36 @@ function outgoingImageExt(file: { name?: string; data?: Uint8Array }): string | 
   return ext
 }
 
+/** signal 取消/超时时让 merge_forward 子消息拉取尽快结束。 */
+function raceSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(new Error('引用回取已取消或超时'))
+  return new Promise<T>((resolve, reject) => {
+    const cleanup = (): void => signal.removeEventListener('abort', onAbort)
+    const onAbort = (): void => { cleanup(); reject(new Error('引用回取已取消或超时')) }
+    signal.addEventListener('abort', onAbort, { once: true })
+    promise.then(
+      value => { cleanup(); resolve(value) },
+      error => { cleanup(); reject(error) },
+    )
+  })
+}
+
 /** SDK messageResource.get is the receive-side API, not im.image.get. */
-export async function resolveFeishuContent(client: ResourceClient, message: FeishuContentMessage, signal: AbortSignal = AbortSignal.timeout(30_000)): Promise<{ text: string; media: ImMedia[] }> {
+export async function resolveFeishuContent(client: ResourceClient, message: FeishuContentMessage, signal: AbortSignal = AbortSignal.timeout(30_000), options: { richSummary?: boolean } = {}): Promise<{ text: string; media: ImMedia[] }> {
+  if (message.message_type === 'merge_forward') {
+    if (options.richSummary === false) throw new Error('暂不支持该消息类型，请发送文字或图片。')
+    let summary = summarizeMergeForward(message.content ?? '')
+    if (!summary && message.message_id && typeof client.im.message?.get === 'function') {
+      try {
+        const fetched = await raceSignal(client.im.message.get({ path: { message_id: message.message_id } }), signal)
+        summary = summarizeMergeForward({ message_list: fetched?.data?.items ?? [] })
+      } catch {
+        summary = null
+      }
+    }
+    if (!summary) throw new Error('暂不支持该消息类型，请发送文字或图片。')
+    return { text: summary, media: [] }
+  }
   const content = JSON.parse(message.content ?? '{}')
   const keys: string[] = []
   const texts: string[] = []
@@ -395,6 +428,8 @@ interface FeishuConfig {
   allowBotSender?: boolean
   /** 是否查询发送者展示名；缺省 true。 */
   senderNameLookup?: boolean
+  /** 是否把 merge_forward 压成可读摘要；缺省 true。 */
+  richSummary?: boolean
 }
 
 interface FeishuMention {
@@ -780,7 +815,7 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
             if (!current()) return
             let resolved: { text: string; media: ImMedia[] }
             try {
-              resolved = await resolveFeishuContent(client!, message, timeoutSignal(30_000, generation.signal))
+              resolved = await resolveFeishuContent(client!, message, timeoutSignal(30_000, generation.signal), { richSummary: config.richSummary !== false })
             } catch (error) {
               if (!current()) return
               log(`[${id}] 图片或消息读取失败: ${error instanceof Error ? error.message : String(error)}`)
