@@ -130,6 +130,8 @@ export declare class ChannelManager {
     private readonly log;
     private readonly ctx;
     private readonly engineConfig;
+    /** 飞书/Lark 准入的插件级默认值；账号 config 中的同名字段优先。 */
+    private readonly accessDefaults;
     private store;
     private readonly running;
     private readonly proxyUrlCache;
@@ -143,6 +145,7 @@ export declare class ChannelManager {
         stateDir: string;
         log: (line: string) => void;
         engineConfig: EngineConfig;
+        accessDefaults?: Record<string, string>;
     });
     list(): ChannelView[];
     private hydrateProxyUrl;
@@ -215,6 +218,8 @@ export declare class ChannelManager {
     permissionOptions(): PermissionOptionView[];
     private permissionPresets;
     private listModelCatalog;
+    /** 飞书/Lark 账号配置叠加插件级准入默认值；账号自身字段优先。 */
+    private withAccessDefaults;
     private startOne;
     private stopOne;
     private persistSecrets;

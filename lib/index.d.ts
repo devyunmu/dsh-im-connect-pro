@@ -25,6 +25,14 @@ export interface PluginConfig {
     segmentDelayMaxSecs?: number;
     /** 思考过程折叠消息；缺省关闭，只有渠道实现 sendThinking 时才生效。 */
     thinkingDisplay?: EngineConfig['thinkingDisplay'];
+    /** 飞书/Lark 群聊档位：mention（默认，@ 才响应）/ off（群静默）/ allowlist（仅名单群，仍需 @）。 */
+    groupPolicy?: 'mention' | 'off' | 'allowlist';
+    /** allowlist 档位允许响应的群 chat_id，逗号/空白/分号分隔。 */
+    groupAllowlist?: string;
+    /** 群 deny 名单；优先于 allowlist，命中的群无条件静默。 */
+    groupDenylist?: string;
+    /** 是否放行 bot 发送者；默认 false，防止群内多 bot 互 @ 烧 token。 */
+    allowBotSender?: boolean;
 }
 export declare const Config: Schema<PluginConfig>;
 export declare function apply(ctx: Context, config: PluginConfig): void;

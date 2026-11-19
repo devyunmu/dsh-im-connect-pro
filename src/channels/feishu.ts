@@ -10,6 +10,7 @@ import { timeoutSignal } from '../engine/abort.js'
 import { fileMedia, MAX_CHANNEL_IMAGES } from './channel-image-download.js'
 import { markdownTableOffsets } from '../engine/split.js'
 import { prependFeishuQuote, type FeishuQuoteClient } from './feishu-quote.js'
+import { evaluateAccess } from './feishu-access.js'
 
 /** 飞书一张卡片最多 5 个 table 元素，超了整个写入会被拒（230099 / ErrCode 11310），旧卡片内容会卡住。 */
 export const FEISHU_CARD_MAX_TABLES = 5
@@ -387,6 +388,10 @@ interface FeishuConfig {
   domain?: 'feishu' | 'lark'
   host?: { get(name: string): unknown }
   threadSessions?: boolean
+  groupPolicy?: 'mention' | 'off' | 'allowlist'
+  groupAllowlist?: string[]
+  groupDenylist?: string[]
+  allowBotSender?: boolean
 }
 
 interface FeishuMention {
@@ -738,14 +743,22 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
           return {}
         },
         'im.message.receive_v1': async (data: {
-          sender?: { sender_id?: { open_id?: string } }
+          sender?: { sender_id?: { open_id?: string }; sender_type?: string }
           message?: { message_id?: string; root_id?: string; parent_id?: string; upper_message_id?: string; thread_id?: string; chat_id?: string; chat_type?: string; message_type?: string; content?: string; mentions?: FeishuMention[] }
         }) => {
           const message = data.message
-          if (!message) return
+          if (!message || !message.chat_id || !current()) return
           const group = message.chat_type === 'group'
-          const addressed = !group || isFeishuBotMentioned(message.mentions, botOpenId)
-          if (!addressed || !message.chat_id || !current()) return
+          // 群聊门禁按 F2 回环 → F3 档位/名单裁决；ignore-* 在进队列前静默丢弃，零回复、零模型调用。
+          const decision = evaluateAccess({
+            senderIdType: data.sender?.sender_type,
+            senderOpenId: data.sender?.sender_id?.open_id,
+            chatId: message.chat_id,
+            isGroup: group,
+            isBotMentioned: isFeishuBotMentioned(message.mentions, botOpenId),
+            config,
+          })
+          if (decision !== 'allow') return
           const rawChatId = message.chat_id
           // 原生话题群/话题串认真实根消息 ID（跟帖取 root_id，首贴取自身 message_id）；
           // 普通群仅在开启配置 threadSessions 时按回复串（root_id）隔离会话，避免日常引用过度分裂；私聊绝不隔离话题
@@ -787,7 +800,8 @@ export function createFeishuChannel(id: 'feishu' | 'lark', config: FeishuConfig,
               messageId: message.message_id,
               platformMessageId: message.message_id,
               kind: group ? 'group' : 'dm',
-              addressed,
+              // evaluateAccess 已裁决；allow 即视为「在对 bot 说话」，避免下游 access 再按未 @ 丢弃。
+              addressed: true,
             })
           }).catch(() => { if (current()) log(`[${id}] 消息处理失败`) })
         },

@@ -66,6 +66,10 @@ interface FeishuConfig {
         get(name: string): unknown;
     };
     threadSessions?: boolean;
+    groupPolicy?: 'mention' | 'off' | 'allowlist';
+    groupAllowlist?: string[];
+    groupDenylist?: string[];
+    allowBotSender?: boolean;
 }
 interface FeishuMention {
     key?: string;

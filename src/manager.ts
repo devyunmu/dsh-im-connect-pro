@@ -297,6 +297,8 @@ export class ChannelManager {
   private readonly log: (line: string) => void
   private readonly ctx: Context
   private readonly engineConfig: EngineConfig
+  /** 飞书/Lark 准入的插件级默认值；账号 config 中的同名字段优先。 */
+  private readonly accessDefaults: Record<string, string>
   private store: Persisted = { channels: {}, allowlist: {}, pending: {} }
   private readonly running = new Map<string, ChannelAdapter>()
   private readonly proxyUrlCache = new Map<string, string>()
@@ -307,9 +309,10 @@ export class ChannelManager {
   // dispose 后阻止 initEnabled/startOne 再拉起渠道，避免插件重载时新旧双实例并存
   private disposed = false
 
-  constructor(options: { ctx: Context; stateDir: string; log: (line: string) => void; engineConfig: EngineConfig }) {
+  constructor(options: { ctx: Context; stateDir: string; log: (line: string) => void; engineConfig: EngineConfig; accessDefaults?: Record<string, string> }) {
     this.ctx = options.ctx
     this.engineConfig = options.engineConfig
+    this.accessDefaults = options.accessDefaults ?? {}
     this.stateDir = options.stateDir
     this.file = join(options.stateDir, 'channels.json')
     this.sessions = new SessionMapStore(join(options.stateDir, 'sessions.json'))
@@ -1117,7 +1120,7 @@ export class ChannelManager {
             const platform = this.platformOf(accountId, state)
             const resolved = await fileOperation(this.resolveSecrets(platform, accountId, state.config ?? {}), signal)
             signal.throwIfAborted()
-            adapter = createChannelAdapter(platform, resolved, this.log, this.accountStateDir(accountId, platform), { host: this.ctx })
+            adapter = createChannelAdapter(platform, this.withAccessDefaults(platform, resolved), this.log, this.accountStateDir(accountId, platform), { host: this.ctx })
           } catch (error) {
             signal.throwIfAborted()
             if (error instanceof DiagnosticError) throw error
@@ -1315,6 +1318,12 @@ export class ChannelManager {
     return out
   }
 
+  /** 飞书/Lark 账号配置叠加插件级准入默认值；账号自身字段优先。 */
+  private withAccessDefaults(platform: ChannelId, config: Record<string, string>): Record<string, string> {
+    if (platform !== 'feishu' && platform !== 'lark') return config
+    return { ...this.accessDefaults, ...config }
+  }
+
   private async startOne(id: string): Promise<void> {
     await this.stopOne(id)
     if (this.disposed) return
@@ -1324,13 +1333,14 @@ export class ChannelManager {
     if (id === 'weixin') await this.migrateLegacyWeixinToken()
     const resolved = await this.resolveSecrets(platform, id, state.config ?? {})
     if (this.disposed) return
+    const channelConfig = this.withAccessDefaults(platform, resolved)
     const accountDir = this.accountStateDir(id, platform)
     let adapter: ChannelAdapter | undefined
     // 渠道网络异常时 start 可能永久挂起，超时按启动失败处理（catch 会顺带 stop）
     const START_TIMEOUT_MS = 30_000
     let startTimer: ReturnType<typeof setTimeout> | undefined
     try {
-      adapter = createChannelAdapter(platform, resolved, this.log, accountDir, {
+      adapter = createChannelAdapter(platform, channelConfig, this.log, accountDir, {
         accountId: id,
         accountLabel: state.name || `${CHANNEL_META[platform].label}账号`,
         host: this.ctx,
