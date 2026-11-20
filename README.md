@@ -22,6 +22,19 @@
 
 > DSH IM Connect 是社区维护的 DeepSeek Harness（DSH）插件，并非 DeepSeek AI 官方产品。
 
+> [!IMPORTANT]
+> **本仓库是 [`MichengAI/dsh-im-connect`](https://github.com/MichengAI/dsh-im-connect)（Apache-2.0）的深度 fork：`@yunmu/dsh-im-connect-pro`。**
+> 上游的所有权利与许可声明保留；本 fork 的修改同样以 Apache-2.0 发布。
+>
+> **本 fork 相对上游的改动（M0-M5）**：
+> - **M0** 认证契约迁移：随宿主 0.2.2-rc.3 移除 `requestRejection` 兼容层，管理路由显式 `auth: 'required'`
+> - **M2** 飞书引用回取：新增 `feishu-quote.ts`（parent/upper/root 优先级、10s 截断、字节级对齐验证）
+> - **M3** 会话准入控制：`feishu-access.ts` 纯函数（bot 回环→denylist→群档位→@ 要求短路序），配置四字段入 schema
+> - **M4** 富文本与展示名：合并转发摘要、嵌套 post 解析（带容器消息拉取兜底）、发送者展示名缓存、拒绝话术分级、`outboundStyle` 出站样式
+> - **M5** 飞书出站 @ 注入：`mentionAliases` 把纯文本 @名称 渲染成真实 mention（post/card/text 三样式）
+>
+> 宿主要求：DeepSeek Harness **≥ 0.2.2-rc.3**；npm 包名 `@yunmu/dsh-im-connect-pro`。
+
 ## 功能概览
 
 不在电脑前，也能通过常用聊天软件把任务交给本机 DSH，并在同一聊天里接收回复、回答问题和处理工具审批。
