@@ -473,19 +473,20 @@ export function buildPostContentSegments(
   text: string,
   aliases: Record<string, string> | undefined,
 ): Array<Record<string, string>> {
+  // post 的 text 元素是字面渲染；markdown 必须走 md 元素才会渲染标题/列表/加粗等。
   const re = aliasRegExp(aliases)
-  if (!re || !text) return [{ tag: 'text', text }]
+  if (!re || !text) return [{ tag: 'md', text }]
   const segments: Array<Record<string, string>> = []
   let last = 0
   for (const match of text.matchAll(re)) {
     const idx = match.index ?? 0
-    if (idx > last) segments.push({ tag: 'text', text: text.slice(last, idx) })
+    if (idx > last) segments.push({ tag: 'md', text: text.slice(last, idx) })
     const name = match[1] ?? ''
     segments.push({ tag: 'at', user_id: aliases![name] ?? name })
     last = idx + match[0].length
   }
-  if (last < text.length) segments.push({ tag: 'text', text: text.slice(last) })
-  return segments.length ? segments : [{ tag: 'text', text }]
+  if (last < text.length) segments.push({ tag: 'md', text: text.slice(last) })
+  return segments.length ? segments : [{ tag: 'md', text }]
 }
 
 /**

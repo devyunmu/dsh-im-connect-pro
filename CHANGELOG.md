@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.47] - 2026-11-21
+
+### Feishu post markdown rendering fix
+
+- **Use md segments for post text**: `buildPostContentSegments` still emitted plain `{tag:'text'}` segments under the post style, so Feishu rendered markdown literally — headings, lists and bold appeared as raw symbols. Plain segments now use `{tag:'md'}`; `at` segments and alias mapping are unchanged, and the card style / plain-text fallback paths are unaffected.
+- **Test updates**: the mention-inject assertions follow the new segment tags; `npm test` is green (1526 pass / 0 fail).
+
 ## [1.0.46] - 2026-11-19
 
 ### Feishu outbound @ mention injection (bot-to-bot @)

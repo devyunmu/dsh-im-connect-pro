@@ -1,5 +1,12 @@
 # 更新日志
 
+## [1.0.47] - 2026-11-21
+
+### 飞书 post markdown 渲染修复
+
+- **post 文本段改用 md 元素**：`buildPostContentSegments` 在 post 样式下仍把普通文本放进 `{tag:'text'}`，飞书按字面渲染，标题、列表、加粗等 markdown 原样显示为符号，消息观感混乱。现改为 `{tag:'md'}`；`at` 段与别名映射逻辑不变，card 样式与纯文本回退路径不受影响。
+- **测试同步**：mention-inject 用例断言随 segments 标签更新，`npm test` 全绿（1526 pass / 0 fail）。
+
 ## [1.0.46] - 2026-11-19
 
 ### 飞书出站 @ 注入（bot 互 @ 打通）

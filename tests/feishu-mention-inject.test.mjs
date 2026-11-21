@@ -36,16 +36,16 @@ test('injectMentionMarkup：text 样式渲染 <at user_id>，markdown 样式渲�
 
 test('buildPostContentSegments：命中处拆出 at 段，未命中单 text 段', () => {
   assert.deepEqual(buildPostContentSegments('开头 @云小智 结尾', ALIASES), [
-    { tag: 'text', text: '开头 ' },
+    { tag: 'md', text: '开头 ' },
     { tag: 'at', user_id: 'ou_1' },
-    { tag: 'text', text: ' 结尾' },
+    { tag: 'md', text: ' 结尾' },
   ])
   assert.deepEqual(buildPostContentSegments('@云小智@云小安', ALIASES), [
     { tag: 'at', user_id: 'ou_1' },
     { tag: 'at', user_id: 'ou_2' },
   ])
-  assert.deepEqual(buildPostContentSegments('普通文本', ALIASES), [{ tag: 'text', text: '普通文本' }])
-  assert.deepEqual(buildPostContentSegments('', ALIASES), [{ tag: 'text', text: '' }])
+  assert.deepEqual(buildPostContentSegments('普通文本', ALIASES), [{ tag: 'md', text: '普通文本' }])
+  assert.deepEqual(buildPostContentSegments('', ALIASES), [{ tag: 'md', text: '' }])
 })
 
 test('e2e：outboundStyle=post + mentionAliases 时 send 的 post payload 含真实 at 段', async () => {
@@ -81,7 +81,7 @@ test('e2e：outboundStyle=post + mentionAliases 时 send 的 post payload 含真
     const segments = body.post.zh_cn.content[0]
     assert.deepEqual(segments, [
       { tag: 'at', user_id: 'ou_1' },
-      { tag: 'text', text: ' 反向验证' },
+      { tag: 'md', text: ' 反向验证' },
     ])
   } finally { await channel.stop() }
 })
